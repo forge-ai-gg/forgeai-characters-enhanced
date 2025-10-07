@@ -1,4 +1,3 @@
-import js from "@eslint/js";
 import next from "@next/eslint-plugin-next";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
