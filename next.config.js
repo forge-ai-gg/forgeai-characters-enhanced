@@ -22,12 +22,6 @@ const nextConfig = {
 
     return config;
   },
-  // Exclude spritesheets from output file tracing (build optimization)
-  experimental: {
-    outputFileTracingExcludes: {
-      "*": ["./spritesheets/**/*"],
-    },
-  },
 };
 
 module.exports = nextConfig;
