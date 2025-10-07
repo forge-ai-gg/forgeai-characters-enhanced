@@ -1,8 +1,20 @@
-import { generateSprite } from "@/lib/generateSprite";
+import { generateSprite } from "@/lib/generate-sprite";
+import { logger } from "@/lib/logger";
 import { SpriteConfigQueryParams } from "@/types/sprites";
+import { yellow } from "colors";
 import crypto from "crypto";
 import { NextRequest } from "next/server";
 
+/**
+ * Generates a sprite based on the query parameters
+ *
+ * @example1 http://localhost:3000/api/sprite?body=Body_color_lavender&head=Human_female_lavender&sex=female&nose=none_Big_nose&hat=none_Armet&shoulders=Legion_steel&gloves=Gloves_bluegray&wrists=Cuffs_bluegray&bauldron=Bauldron_brown&arms=Armour_iron&sleeves=Shortsleeves_2_Overlay_maroon&apron=Apron_orange&chainmail=none_Chainmail&vest=Vest_green&legs=Pants_maroon&shoes=Basic_Shoes_orange&hair=Spiked_green&facial_left=Left_Monocle_iron&clothes=Shortsleeve_Polo_blue
+ *
+ *
+ *
+ * @param request - The NextRequest object containing the query parameters
+ * @returns A Response object containing the sprite
+ */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -12,9 +24,11 @@ export async function GET(request: NextRequest) {
     const cacheKey = createCacheKey(entries);
     const etag = createETag(cacheKey);
 
+    logger.info("Got Query Params:");
     for (const key of Object.keys(entries)) {
-      console.log("entry", key, entries[key]);
+      logger.info(`- ${yellow(key)}=${yellow(entries[key] ?? "")}`);
     }
+
     const sprite = await generateSprite(entries);
 
     return new Response(sprite as BodyInit, {

@@ -41,7 +41,10 @@ function stringifyObject(obj: any, indent = 0): string {
 
 async function generateDefinitions() {
   const definitionsPath = path.join(process.cwd(), "sheet_definitions");
-  const outPath = path.join(process.cwd(), "src/app/lib/sheet-definitions.ts");
+  const outPath = path.join(
+    process.cwd(),
+    "src/app/lib/generated/sheet-definitions.ts"
+  );
 
   const files = await fs.readdir(definitionsPath);
   const definitions: SheetDefinitions = {};

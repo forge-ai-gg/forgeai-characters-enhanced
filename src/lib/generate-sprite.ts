@@ -1,15 +1,18 @@
 import { UNIVERSAL_SHEET_HEIGHT, UNIVERSAL_SHEET_WIDTH } from "@/lib/constants";
 import { drawLayers } from "@/lib/draw-layers";
 import { getLayersForSprite } from "@/lib/get-layers";
+import { logger } from "@/lib/logger";
 import { SpriteConfigQueryParams } from "@/types/sprites";
 import { createCanvas } from "canvas";
+import { yellow } from "colors";
 
 export async function generateSprite(
   params: Partial<SpriteConfigQueryParams>
 ): Promise<Buffer> {
   // 1. Load layer definitions based on params
   const layers = await getLayersForSprite(params);
-  console.log("Got layers:", layers.length);
+
+  logger.info(`Found ${yellow(layers.length.toString())} layers`);
 
   // 2. Create canvas with full spritesheet dimensions
   const canvas = createCanvas(UNIVERSAL_SHEET_WIDTH, UNIVERSAL_SHEET_HEIGHT);
