@@ -27,21 +27,34 @@ export async function findValidAnimationFile({
   variant: string;
   supportedAnimations?: string[];
 }): Promise<string | null> {
-  // Try non-animated variant first
-  const baseFileUrl = buildAssetUrl(componentPath, `${variant}.png`);
   const animationPriority = ["walk", "idle", "combat_idle", "run"];
 
-  if (await urlExists(baseFileUrl)) {
-    console.log(`✅ Found base file: ${baseFileUrl}`);
-    return baseFileUrl;
-  } else {
-    console.log(`Base file not found, trying animations...`);
+  // Try both space and underscore versions of the variant
+  // Some variants lists have spaces but files use underscores
+  const variantVersions = [
+    variant,
+    variant.replace(/ /g, "_"), // space to underscore
+  ].filter((v, i, arr) => arr.indexOf(v) === i); // unique values only
 
-    // Try animations in priority order
-    for (const anim of animationPriority) {
-      // if (!supportedAnimations?.includes(anim)) continue;
+  // Try non-animated variant first (both versions)
+  for (const variantVersion of variantVersions) {
+    const baseFileUrl = buildAssetUrl(componentPath, `${variantVersion}.png`);
+    if (await urlExists(baseFileUrl)) {
+      console.log(`✅ Found base file: ${baseFileUrl}`);
+      return baseFileUrl;
+    }
+  }
 
-      const animFileUrl = buildAssetUrl(componentPath, anim, `${variant}.png`);
+  console.log(`Base file not found, trying animations...`);
+
+  // Try animations in priority order (both versions)
+  for (const anim of animationPriority) {
+    for (const variantVersion of variantVersions) {
+      const animFileUrl = buildAssetUrl(
+        componentPath,
+        anim,
+        `${variantVersion}.png`
+      );
 
       if (await urlExists(animFileUrl)) {
         console.log(`✅ Found animation file: ${animFileUrl}`);

@@ -10,7 +10,9 @@ import { NextRequest } from "next/server";
  *
  * @example1 http://localhost:3000/api/sprite?body=Body_color_lavender&head=Human_female_lavender&sex=female&nose=none_Big_nose&hat=none_Armet&shoulders=Legion_steel&gloves=Gloves_bluegray&wrists=Cuffs_bluegray&bauldron=Bauldron_brown&arms=Armour_iron&sleeves=Shortsleeves_2_Overlay_maroon&apron=Apron_orange&chainmail=none_Chainmail&vest=Vest_green&legs=Pants_maroon&shoes=Basic_Shoes_orange&hair=Spiked_green&facial_left=Left_Monocle_iron&clothes=Shortsleeve_Polo_blue
  *
+ * @example2 http://localhost:3000/api/sprite?body=Body_color_bright_green&head=Human_male_plump_bright_green&sex=male&nose=none_Big_nose&hat=none_Armet&shoulders=Legion_steel&gloves=Gloves_bluegray&wrists=Cuffs_bluegray&bauldron=Bauldron_brown&arms=Armour_iron&sleeves=Shortsleeves_2_Overlay_maroon&apron=Apron_orange&chainmail=none_Chainmail&vest=Vest_green&legs=Cuffed_Pants_blue&shoes=Revised_Boots_green&hair=Bob_redhead&facial_left=Left_Monocle_iron&clothes=Shortsleeve_Polo_blue&expression=Neutral_bright_green&jacket=Collared_coat_charcoal&shield=Shield_round_yellow&weapon=Dagger_dagger
  *
+ * @example3: https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/#?body=Body_color_fur_gold&head=Goblin_fur_gold&sex=male&nose=Button_nose_fur_gold&hat=none_Armet&shoulders=Legion_steel&gloves=Gloves_bluegray&wrists=Cuffs_bluegray&bauldron=Bauldron_brown&arms=Armour_iron&sleeves=Shortsleeves_2_Overlay_maroon&apron=Apron_orange&chainmail=none_Chainmail&vest=Vest_green&legs=Shorts_orange&shoes=Ghillies_gray&hair=Spiked2_redhead&facial_left=Left_Monocle_iron&clothes=Shortsleeve_Polo_blue&expression=none_Looking_Right&jacket=Collared_coat_charcoal&shield=Spartan_shield_spartan&weapon=Smash_axe&beard=Winter_Beard_black
  *
  * @param request - The NextRequest object containing the query parameters
  * @returns A Response object containing the sprite

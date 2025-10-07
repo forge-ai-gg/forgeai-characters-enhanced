@@ -11,8 +11,9 @@ import { logger } from "./logger";
 /**
  * Parse a value like "Pixie_dark_brown" or "Longsleeves_2_Overlay_navy"
  * Returns the name and variant separately
+ * This is a heuristic-based parse - may need refinement by checking variants list
  */
-function parseValue(value: string): { name: string; variant: string } {
+function parseValueHeuristic(value: string): { name: string; variant: string } {
   const parts = value.split("_");
 
   // Find the split point - where lowercase/variant starts
@@ -34,6 +35,44 @@ function parseValue(value: string): { name: string; variant: string } {
 
   const name = parts.slice(0, splitIndex).join(" ");
   const variant = parts.slice(splitIndex).join("_");
+
+  return { name, variant };
+}
+
+/**
+ * Parse value and refine using the sheet definition's variants list
+ */
+function parseValue(
+  value: string,
+  sheetDef?: SheetDefinition
+): { name: string; variant: string } {
+  // Start with heuristic parse
+  let { name, variant } = parseValueHeuristic(value);
+
+  // If we have a sheet definition with variants, use it to refine
+  if (sheetDef && sheetDef.variants && sheetDef.variants.length > 0) {
+    const parts = value.split("_");
+
+    // Try different split points to find a matching variant
+    for (let splitIndex = 1; splitIndex < parts.length; splitIndex++) {
+      const testName = parts.slice(0, splitIndex).join(" ");
+      const testVariant = parts.slice(splitIndex).join("_");
+      const testVariantWithSpaces = parts.slice(splitIndex).join(" ");
+
+      // Check if this variant exists in the variants list
+      if (
+        sheetDef.variants.includes(testVariant) ||
+        sheetDef.variants.includes(testVariantWithSpaces)
+      ) {
+        return {
+          name: testName,
+          variant: sheetDef.variants.includes(testVariantWithSpaces)
+            ? testVariantWithSpaces
+            : testVariant,
+        };
+      }
+    }
+  }
 
   return { name, variant };
 }
@@ -106,17 +145,27 @@ export async function getLayersForSprite(
       continue;
     }
 
-    // === SPECIAL CASE: head ===
-    if (paramType === "head") {
-      // head format: "Human_female_bronze" -> path: head/heads/human/female/, variant: bronze
+    // === SPECIAL CASE: head (only for Human heads) ===
+    if (paramType === "head" && value.startsWith("Human_")) {
+      // Human head format: "Human_female_bronze" or "Human_male_plump_bright_green"
+      // -> path: head/heads/human/female/, variant: bronze or bright_green
       const parts = value.split("_");
       if (parts.length >= 3) {
-        const [headType, headSex, ...variantParts] = parts;
+        const [headType, headSex, ...rest] = parts;
         if (!headType || !headSex) {
           logger.error(`❌ Invalid head format: ${value}`);
           continue;
         }
-        const variant = variantParts.join("_");
+
+        // Check if there's a body type modifier (plump, gaunt, small)
+        const bodyTypeModifiers = ["plump", "gaunt", "small"];
+        let variant = rest.join("_");
+
+        if (rest.length > 0 && rest[0] && bodyTypeModifiers.includes(rest[0])) {
+          // Skip the body type modifier and use remaining parts as variant
+          variant = rest.slice(1).join("_");
+        }
+
         const fileName = await findValidAnimationFile({
           componentPath: `head/heads/${headType.toLowerCase()}/${headSex}/`,
           variant,
@@ -136,6 +185,8 @@ export async function getLayersForSprite(
       continue;
     }
 
+    // Non-human heads (Goblin, etc.) fall through to general case handling
+
     // === GENERAL CASE: All other components ===
 
     // Special handling for "none_*" values - skip them early
@@ -144,24 +195,28 @@ export async function getLayersForSprite(
       continue;
     }
 
-    const { name, variant } = parseValue(value);
+    // First pass: heuristic parse to find sheet definition
+    const { name: heuristicName } = parseValueHeuristic(value);
+
+    const sheetDefinition = findSheetDefinition(paramType, heuristicName);
+
+    if (!sheetDefinition) {
+      logger.error(
+        `❌ No sheet definition found for param: ${paramType}, name: ${heuristicName}, value: ${value}`
+      );
+      continue;
+    }
+
+    // Second pass: refined parse using the sheet definition
+    const { name, variant } = parseValue(value, sheetDefinition);
 
     if (!variant || !name) {
       logger.error(`❌ Could not parse name/variant from value: ${value}`);
       continue;
     }
 
-    const sheetDefinition = findSheetDefinition(paramType, name);
-
-    if (!sheetDefinition) {
-      logger.error(
-        `❌ No sheet definition found for param: ${paramType}, name: ${name}, value: ${value}`
-      );
-      continue;
-    }
-
     logger.info(
-      `✅ Found sheet definition: ${sheetDefinition.name} (type: ${sheetDefinition.type_name})`
+      `✅ Found sheet definition: ${sheetDefinition.name} (type: ${sheetDefinition.type_name}), variant: ${variant}`
     );
 
     // Process all layers (1-8)
@@ -171,8 +226,16 @@ export async function getLayersForSprite(
 
       if (!layer) continue;
 
+      // Skip layers with custom_animation - they're only for custom animations, not standard sprites
+      if (layer.custom_animation) {
+        logger.debug(
+          `Skipping ${paramType} layer ${i} - has custom_animation: ${layer.custom_animation}`
+        );
+        continue;
+      }
+
       // Get path for current sex
-      const componentPath = layer[sex as keyof LayerDefinition] as
+      let componentPath = layer[sex as keyof LayerDefinition] as
         | string
         | undefined;
 
@@ -181,24 +244,26 @@ export async function getLayersForSprite(
         continue;
       }
 
-      // Try to find the file with variant (check variants list for proper format)
-      let finalVariant = variant;
-      if (sheetDefinition.variants) {
-        // Check if variant with space exists in variants list
-        const variantWithSpace = variant.replace(/_/g, " ");
-        if (sheetDefinition.variants.includes(variantWithSpace)) {
-          finalVariant = variantWithSpace;
-        } else if (!sheetDefinition.variants.includes(variant)) {
-          // If neither underscore nor space version exists, log warning
-          logger.warn(
-            `⚠️  Variant "${variant}" not found in variants list for ${sheetDefinition.name}`
+      // Handle replace_in_path for special components (like expressions)
+      if (sheetDefinition.replace_in_path) {
+        const headValue = params.head?.toString() || "";
+        const headKey = headValue.split("_").slice(0, 3).join("_"); // e.g., "Human_male_plump"
+        const replaceMap = sheetDefinition.replace_in_path.head as Record<
+          string,
+          string
+        >;
+
+        if (replaceMap && replaceMap[headKey]) {
+          componentPath = componentPath.replace("${head}", replaceMap[headKey]);
+          logger.debug(
+            `Replaced ${headKey} with ${replaceMap[headKey]} in path`
           );
         }
       }
 
       const fileName = await findValidAnimationFile({
         componentPath,
-        variant: finalVariant,
+        variant,
         supportedAnimations: sheetDefinition.animations,
       });
 
@@ -207,13 +272,13 @@ export async function getLayersForSprite(
           fileName,
           zPos: layer.zPos,
           name: `${paramType}_${layerKey}`,
-          variant: finalVariant,
+          variant,
           supportedAnimations: sheetDefinition.animations || [],
         });
         logger.info(`✅ Found file for ${sheetDefinition.name}: ${fileName}`);
       } else {
         logger.error(
-          `❌ No file found for ${sheetDefinition.name} variant ${finalVariant}`
+          `❌ No file found for ${sheetDefinition.name} variant ${variant}`
         );
       }
     }
