@@ -98,24 +98,24 @@ export function useCharacterState() {
   const updateOption = useCallback(
     (key: keyof SpriteConfigQueryParams, value: any) => {
       const newConfig = { ...config, [key]: value };
-      
+
       // Sync beard color with hair color when hair changes
-      if (key === 'hair' && value && config.beard) {
+      if (key === "hair" && value && config.beard) {
         // Extract color variant from hair value (e.g., "Single_blonde" -> "blonde")
-        const hairParts = value.split('_');
+        const hairParts = value.split("_");
         if (hairParts.length > 1) {
           const hairColor = hairParts[hairParts.length - 1];
-          
+
           // Extract beard name from current beard value (e.g., "Basic Beard_black" -> "Basic Beard")
-          const beardParts = config.beard.split('_');
+          const beardParts = config.beard.split("_");
           if (beardParts.length > 1) {
             // Remove the last part (current color) and add new color
-            const beardName = beardParts.slice(0, -1).join('_');
+            const beardName = beardParts.slice(0, -1).join("_");
             newConfig.beard = `${beardName}_${hairColor}`;
           }
         }
       }
-      
+
       setConfig(newConfig);
       updateURL(newConfig);
     },
@@ -209,19 +209,25 @@ export function useCharacterState() {
       newConfig.head = `Human_${newConfig.sex}_${bodyColor}`;
 
       // Only add beard for male characters
-      if (newConfig.sex !== "female" && options.beard && Array.isArray(options.beard) && options.beard.length > 0) {
-        const randomBeard = options.beard[Math.floor(Math.random() * options.beard.length)];
+      if (
+        newConfig.sex !== "female" &&
+        options.beard &&
+        Array.isArray(options.beard) &&
+        options.beard.length > 0
+      ) {
+        const randomBeard =
+          options.beard[Math.floor(Math.random() * options.beard.length)];
         if (randomBeard?.value) {
           newConfig.beard = randomBeard.value;
-          
+
           // Match beard color with hair color if hair is present
           if (newConfig.hair) {
-            const hairParts = newConfig.hair.split('_');
+            const hairParts = newConfig.hair.split("_");
             if (hairParts.length > 1) {
               const hairColor = hairParts[hairParts.length - 1];
-              const beardParts = randomBeard.value.split('_');
+              const beardParts = randomBeard.value.split("_");
               if (beardParts.length > 1) {
-                const beardName = beardParts.slice(0, -1).join('_');
+                const beardName = beardParts.slice(0, -1).join("_");
                 newConfig.beard = `${beardName}_${hairColor}`;
               }
             }
