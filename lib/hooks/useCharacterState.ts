@@ -1,5 +1,6 @@
 "use client";
 
+import { randomizeSpriteConfig } from "@/lib/randomize-sprite-config";
 import { SpriteConfigQueryParams } from "@/types/sprites";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -161,80 +162,7 @@ export function useCharacterState() {
   const randomizeConfig = useCallback(
     (options: any) => {
       setIsLoading(true);
-      const newConfig = { ...DEFAULT_CONFIG };
-
-      // Categories to skip during randomization
-      const skipCategories = new Set([
-        "wings",
-        "bauldron",
-        "body",
-        "head",
-        "weapon",
-        "shield",
-        "chainmail",
-        "ears",
-        "beard", // Skip beard initially - will be handled separately based on sex
-      ]);
-
-      // Randomize each category if options are available
-      Object.entries(options).forEach(
-        ([categoryKey, categoryOptions]: [string, any]) => {
-          // Skip categories that shouldn't be randomized
-          if (skipCategories.has(categoryKey)) {
-            return;
-          }
-
-          if (Array.isArray(categoryOptions) && categoryOptions.length > 0) {
-            const randomOption =
-              categoryOptions[
-                Math.floor(Math.random() * categoryOptions.length)
-              ];
-            if (randomOption?.value) {
-              newConfig[categoryKey as keyof SpriteConfigQueryParams] =
-                randomOption.value;
-            }
-          }
-        }
-      );
-
-      // Only randomize between male and female for body type
-      const bodyTypes = ["male", "female"];
-
-      // Always keep skin color as 'light'
-      const bodyColor = "light";
-
-      newConfig.sex = bodyTypes[Math.floor(Math.random() * bodyTypes.length)];
-      newConfig.bodyColor = bodyColor;
-      newConfig.body = `Body_color_${bodyColor}`;
-      newConfig.head = `Human_${newConfig.sex}_${bodyColor}`;
-
-      // Only add beard for male characters
-      if (
-        newConfig.sex !== "female" &&
-        options.beard &&
-        Array.isArray(options.beard) &&
-        options.beard.length > 0
-      ) {
-        const randomBeard =
-          options.beard[Math.floor(Math.random() * options.beard.length)];
-        if (randomBeard?.value) {
-          newConfig.beard = randomBeard.value;
-
-          // Match beard color with hair color if hair is present
-          if (newConfig.hair) {
-            const hairParts = newConfig.hair.split("_");
-            if (hairParts.length > 1) {
-              const hairColor = hairParts[hairParts.length - 1];
-              const beardParts = randomBeard.value.split("_");
-              if (beardParts.length > 1) {
-                const beardName = beardParts.slice(0, -1).join("_");
-                newConfig.beard = `${beardName}_${hairColor}`;
-              }
-            }
-          }
-        }
-      }
-
+      const newConfig = randomizeSpriteConfig(options);
       setConfig(newConfig);
       updateURL(newConfig);
       setIsLoading(false);
